@@ -1,0 +1,534 @@
+---
+title: "Tidy data structure and <br> calendar-based visualisation <br> to support exploration of temporal-context data"
+type: "invited"
+author: "Earo Wang <br> Monash University"
+date: "Apr 03, 2018 <br> slides at <http://slides.earo.me/bonjour>"
+output:
+  xaringan::moon_reader:
+    css: ["xaringan-themer.css"]
+    nature:
+      highlightStyle: solarized-dark
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r initial, echo = FALSE, cache = FALSE, results = 'hide'}
+library(knitr)
+options(htmltools.dir.version = FALSE, tibble.width = 60, tibble.print_min = 10)
+opts_chunk$set(
+  echo = FALSE, warning = FALSE, message = FALSE, comment = "#>",
+  fig.path = 'figure/', cache.path = 'cache/', fig.align = 'center', 
+  fig.width = 12, fig.height = 11, fig.show = 'hold', 
+  cache = TRUE, external = TRUE, dev = 'svglite'
+)
+read_chunk('src/code.R')
+```
+
+```{r load-pkgs}
+```
+
+```{r theme-remark}
+```
+
+class: middle
+
+## What is temporal-context data?
+
+Data measured or collected at different time points
+
+--
+
+## What to do with it?
+
+* trend, seasonal variations, or unexpected behaviours
+* autocorrelation or cross-correlation of multiple series
+* modeling and forecasting
+
+---
+
+class: bottom center
+
+background-image: url(img/sensor.png)
+background-size: 50%
+
+# .blue[Melbourne pedestrian activity]
+
+---
+
+.left-column[
+## Pedestrian counting system
+### - sensors
+]
+.right-column[
+```{r map, fig.height = 9}
+```
+```{r selected-sensor, fig.show = "hide"}
+```
+]
+
+---
+
+.left-column[
+## Pedestrian counting system
+### - sensors
+### - the data
+]
+.right-column[
+```{r ped-data}
+```
+```{r ped-print}
+pedestrian
+```
+```{r ped-sub}
+```
+
+Sourced from [Melbourne open data portal](http://www.pedestrian.melbourne.vic.gov.au), and accessed through the [rwalkr](http://pkg.earo.me/rwalkr/) package
+]
+
+---
+
+.left-column[
+## Glimpse
+### - selected sensors
+]
+.right-column[
+* Flinders Street-Elizabeth Street (East)
+* Southern Cross Station
+* Victoria Market
+```{r selected-sensor, fig.height = 9}
+```
+]
+
+---
+
+.left-column[
+## Glimpse
+### - selected sensors
+### - time series plot
+]
+.right-column[
+```{r ts-plot-na, echo = FALSE}
+```
+]
+
+---
+
+.left-column[
+## Glimpse
+### - selected sensors
+### - time series plot
+### - characteristics
+]
+.right-column[
+* heterogenous data types
+* multiple units (sensors)
+* implicit missing values
+```{r ts-plot-na, echo = FALSE}
+```
+]
+
+---
+
+## However ...
+
+The current structure that underlies time series objects:
+
+\begin{equation}
+  \begin{bmatrix}
+  X_{11} & X_{21} & \cdots & X_{p1} \\
+  X_{12} & X_{22} & \cdots & X_{p2} \\
+  \vdots & \vdots & \ddots & \vdots \\
+  X_{1T} & X_{2T} & \cdots & X_{pT}
+  \end{bmatrix}
+\end{equation}
+
+where $X_{jt}$ represents series $j$, for $j = 1, \dots, p$ and $1 \leq t \leq T$, in the form of a $T \times p$ matrix.
+
+--
+
+.pull-left[
+### conventional structure
+.x[
+* homogeneity
+* implicitly inferred time index
+* explicit missing values
+]
+]
+.pull-right[
+### we'd like
+.checked[
+* heterogeneity
+* explicitly declared time index
+* implicit missing values
+]
+]
+
+???
+
+1. each column is a time series
+2. each row is a time point
+
+---
+
+class: inverse middle center
+
+.scale-up[<img src="img/tsibble.svg" height=200px size=50%>]
+## The future of time series in R
+
+---
+
+.left-column[
+<img src="img/tsibble.svg" height=120px>
+### - semantics
+]
+.right-column[
+## Tidy data principles.red[<sup>1</sup>]:
+* Each variable forms a column.
+* Each observation forms a row.
+* Each type of observational unit forms a table.
+![](img/tidy.png)
+
+.footnote[
+.red[1.] Wickham, H (2014). Tidy data. *Journal of Statistical Software* **59**(10), 1–23.
+]
+]
+
+
+---
+
+.left-column[
+<img src="img/tsibble.svg" height=120px>
+### - semantics
+]
+.right-column[
+* **index**: an explicitly declared variable containing time indices.
+* **key**: uniquely identifies each unit that measurements take place on over time.
+* **interval**: a common time interval if data with regular time interval.
+```{r tsibble, include = FALSE}
+```
+```{r tsibble, echo = TRUE, eval = FALSE}
+```
+```
+*#> # A tsibble: 20,278 x 5 [1HOUR]
+*#> # Keys:      Sensor [3]
+#>    Sensor        Date_Time           Date        Time Count
+#>    <chr>         <dttm>              <date>     <int> <int>
+#>  1 Flinders St-… 2017-04-04 00:00:00 2017-04-04     0   170
+#>  2 Flinders St-… 2017-04-04 01:00:00 2017-04-04     1    70
+#>  3 Flinders St-… 2017-04-04 02:00:00 2017-04-04     2    63
+#>  4 Flinders St-… 2017-04-04 03:00:00 2017-04-04     3    61
+#>  5 Flinders St-… 2017-04-04 04:00:00 2017-04-04     4    89
+#>  6 Flinders St-… 2017-04-04 05:00:00 2017-04-04     5   239
+#>  7 Flinders St-… 2017-04-04 06:00:00 2017-04-04     6   630
+#>  8 Flinders St-… 2017-04-04 07:00:00 2017-04-04     7  1563
+#>  9 Flinders St-… 2017-04-04 08:00:00 2017-04-04     8  2834
+#> 10 Flinders St-… 2017-04-04 09:00:00 2017-04-04     9  1829
+#> # ... with 2.027e+04 more rows
+```
+]
+
+---
+
+.left-column[
+<img src="img/tsibble.svg" height=120px>
+### - semantics
+### - turn implicit missingness to explicit
+]
+.right-column[
+```{r fill-na0, echo = TRUE}
+```
+]
+
+---
+
+.left-column[
+<img src="img/tsibble.svg" height=120px>
+### - semantics
+### - turn implicit missingness to explicit
+]
+.right-column[
+```{r fill-na, echo = TRUE}
+```
+]
+
+---
+
+.left-column[
+<img src="img/tsibble.svg" height=120px>
+### - semantics
+### - turn implicit missingness to explicit
+]
+.right-column[
+```{r ts-plot}
+```
+]
+
+---
+
+.left-column[
+<img src="img/tsibble.svg" height=120px>
+### - semantics
+### - turn implicit missingness to explicit
+### - aggregate over time
+]
+.right-column[
+```{r tsummarise, echo = TRUE}
+```
+]
+
+---
+
+.left-column[
+<img src="img/tsibble.svg" height=120px>
+### - semantics
+### - turn implicit missingness to explicit
+### - aggregate over time
+]
+.right-column[
+```{r daily-sensor}
+```
+]
+
+---
+
+.left-column[
+<img src="img/tsibble.svg" height=120px>
+### - semantics
+### - turn implicit missingness to explicit
+### - aggregate over time
+### - dplyr verbs
+]
+.right-column[
+```{r mutate, echo = TRUE}
+```
+]
+
+---
+
+.left-column[
+<img src="img/tsibble.svg" height=120px>
+### - semantics
+### - turn implicit missingness to explicit
+### - aggregate over time
+### - dplyr verbs
+]
+.right-column[
+```{r facet-time, echo = FALSE}
+```
+]
+
+---
+
+background-image: url(img/calendar.png)
+background-size: cover
+
+---
+
+background-image: url(figure/sx-hol-1.svg)
+background-size: cover
+
+---
+
+class: inverse middle center
+
+<img src="img/sugrrants.svg" height=200px size=50%>
+
+## `r icon::fa_calendar()` calendar-based visualisation
+
+---
+
+## Calendar-based visualisation
+
+.block[
+.flowchart[
+* `frame_calendar()` <br> re-structure into a calendar layout
+]
+]
+
+```r
+sx_cal <- pedestrian %>% 
+  filter(Sensor == "Southern Cross Station") %>% 
+* frame_calendar(x = Time, y = Count, date = Date)
+```
+
+```{r sx}
+```
+
+---
+
+## Calendar-based visualisation
+
+.block[
+.flowchart[
+* `frame_calendar()` <br> re-structure into a calendar layout
+* `ggplot()` <br> synchronize with grammar of graphics
+]
+]
+
+```r
+sx_cal <- pedestrian %>% 
+  filter(Sensor == "Southern Cross Station") %>% 
+  frame_calendar(x = Time, y = Count, date = Date)
+p_sx <- sx_cal %>% 
+* ggplot(aes(x = .Time, y = .Count, colour = Holiday, group = Date)) +
+* geom_line()
+```
+
+---
+
+class: middle
+
+```{r sx-plot, fig.height = 9.5}
+```
+
+---
+
+## Calendar-based visualisation
+
+.block[
+.flowchart[
+* `frame_calendar()` <br> re-structure into a calendar layout
+* `ggplot()` <br> synchronize with grammar of graphics
+* `prettify()` <br> add reference lines and labels
+]
+]
+```r
+sx_cal <- pedestrian %>% 
+  filter(Sensor == "Southern Cross Station") %>% 
+  frame_calendar(x = Time, y = Count, date = Date)
+p_sx <- sx_cal %>% 
+  ggplot(aes(x = .Time, y = .Count, colour = Holiday, group = Date)) +
+  geom_line()
+*prettify(p_sx)
+```
+
+---
+
+class: middle
+
+```{r sx-prettify, fig.height = 9.5}
+```
+
+---
+
+.left-column[
+## Special events
+### - adele's concert
+]
+.right-column[
+## Southern Cross Station
+```{r sx-march}
+```
+]
+
+---
+
+.left-column[
+## Special events
+### - adele's concert
+]
+.right-column[
+![](img/adele.png)
+]
+
+---
+
+.left-column[
+## Special events
+### - adele's concert
+### - car attack
+]
+.right-column[
+## Flinders St-Elizabeth St
+```{r dec}
+```
+]
+
+---
+
+.left-column[
+## Special events
+### - adele's concert
+### - car attack
+]
+.right-column[
+![](https://upload.wikimedia.org/wikipedia/commons/3/3c/Elizabeth_Street_tram_terminus%2C_Melbourne.jpg)
+[Wikipedia: December 21 2017 Melbourne car attack](https://en.wikipedia.org/wiki/December_2017_Melbourne_car_attack)
+.footnote[picture: <a href="/wiki/User:Dysprosia~commonswiki" class="mw-redirect" title="User:Dysprosia~commonswiki">Dysprosia</a> [<a href="http://opensource.org/licenses/bsd-license.php">BSD</a>], <a href="https://commons.wikimedia.org/wiki/File%3AElizabeth_Street_tram_terminus%2C_Melbourne.jpg">via Wikimedia Commons</a>]
+]
+
+---
+
+.left-column[
+## Showcases
+### - electricity consumption
+]
+.right-column[
+![elec](img/elec-consumption.png)
+.red[.footnote[Reference: **Roach, C** (forthcoming 2018). Assessing the impact of building characteristics on energy consumption using semiparametric mixed models.]]
+]
+
+---
+
+.left-column[
+## Showcases
+### - electricity consumption
+### - bus delays
+]
+.right-column[
+<br>
+<br>
+<br>
+![bus](img/bus-delay.jpg)
+.red[.footnote[Reference: [Tom Elliott's tweet](https://twitter.com/tomelliottnz/status/958887861943640064)]]
+]
+
+---
+
+class: inverse middle center
+
+# Wrap-up
+
+---
+
+class: middle
+
+<img src="img/data-science.png">
+
+.footnote[adapted from [r4ds](http://r4ds.had.co.nz/explore-intro.html)]
+
+---
+
+class: inverse middle center
+
+### Joint works with [Di Cook](http://dicook.org) and [Rob J Hyndman](http://robjhyndman.com)
+
+--
+
+### Slides created via xaringan `r emo::ji("crossed_swords")` <http://slides.earo.me/bonjour>
+
+--
+### Open source <https://github.com/earowang/bonjour>
+
+--
+### This work is under licensed [`r icon::fa("creative-commons")` BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
+
+--
+
+### Merci!
+
+--
+
+### .
+
+--
+
+### .
+
+--
+
+### .
+
+--
+
+### FIN
